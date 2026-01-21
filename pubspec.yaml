@@ -1,0 +1,39 @@
+name: safety_app
+description: "Women Safety App"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.10.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # ========== CORE PACKAGES ONLY ==========
+  # Maps
+  flutter_map: ^6.1.1
+  latlong2: ^0.9.0
+  geolocator: ^11.0.1
+  audioplayers: ^6.0.0
+  url_launcher: ^6.3.0
+
+  
+  # HTTP
+  http: ^1.2.1
+  
+  # Safety Features
+  share_plus: ^8.0.1
+  
+  # UI
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  
+ 
