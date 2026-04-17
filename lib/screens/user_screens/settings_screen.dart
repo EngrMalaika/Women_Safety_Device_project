@@ -1,895 +1,713 @@
 import 'package:flutter/material.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  bool _shakeToAlert = true;
+  bool _powerButtonSOS = true;
+  bool _soundEnabled = true;
+  bool _vibrationEnabled = true;
+  int _sosTimerSeconds = 5;
+
+  void _showComingSoon(String feature) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(
+              Icons.info_outline_rounded,
+              color: Colors.white,
+              size: 16,
+            ),
+            const SizedBox(width: 8),
+            Text('$feature — available in Phase 2'),
+          ],
+        ),
+        backgroundColor: Colors.orange.shade400,
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
+  void _showLogoutDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.logout_rounded, color: Colors.red, size: 22),
+            SizedBox(width: 8),
+            Text("Logout", style: TextStyle(fontSize: 18)),
+          ],
+        ),
+        content: const Text(
+          "Are you sure you want to logout?",
+          style: TextStyle(fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              "Cancel",
+              style: TextStyle(color: Colors.grey.shade600),
+            ),
+          ),
+          GestureDetector(
+            onTap: () {
+              Navigator.pop(ctx);
+              Navigator.pushReplacementNamed(context, '/welcome');
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.red,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Text(
+                "Logout",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          "Settings",
-          style: TextStyle(color: Colors.white, fontSize: 22),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF7B4F8E), Color(0xFF9B6FA3), Color(0xFFD4B8DA)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            stops: [0.0, 0.32, 1.0],
+          ),
         ),
-        iconTheme: const IconThemeData(color: Colors.white),
-        backgroundColor: Colors.pink,
-        elevation: 4,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // -------- ACCOUNT SECTION --------
-            const Text(
-              "Account",
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.pink,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Card(
-              elevation: 3,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // APP BAR
+              Padding(
+                padding: const EdgeInsets.fromLTRB(4, 6, 16, 0),
                 child: Row(
                   children: [
-                    const CircleAvatar(
-                      radius: 30,
-                      backgroundColor: Colors.pink,
-                      child: Icon(Icons.person, color: Colors.white, size: 30),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            "John Doe",
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          const Text(
-                            "john.doe@example.com",
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            "User ID: UID-12345",
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
                     IconButton(
-                      icon: const Icon(Icons.edit, color: Colors.pink),
-                      onPressed: () => _editProfile(context),
+                      icon: const Icon(
+                        Icons.arrow_back_ios_rounded,
+                        color: Colors.white,
+                      ),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    const Expanded(
+                      child: Text(
+                        "Settings",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
                     ),
                   ],
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
 
-            // -------- GENERAL SETTINGS --------
-            const Text(
-              "General Settings",
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.pink,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Card(
-              elevation: 3,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                children: [
-                  _buildSettingItem(
-                    icon: Icons.notifications,
-                    title: "Notifications",
-                    subtitle: "Manage notification preferences",
-                    onTap: () => _openNotificationsSettings(context),
-                  ),
-                  const Divider(height: 1, indent: 16),
-                  _buildSettingItem(
-                    icon: Icons.security,
-                    title: "Privacy & Security",
-                    subtitle: "Privacy settings and permissions",
-                    onTap: () => _openPrivacySettings(context),
-                  ),
-                  const Divider(height: 1, indent: 16),
-                  _buildSettingItem(
-                    icon: Icons.language,
-                    title: "Language",
-                    subtitle: "English (US)",
-                    onTap: () => _changeLanguage(context),
-                  ),
-                  const Divider(height: 1, indent: 16),
-                  _buildSettingItem(
-                    icon: Icons.palette,
-                    title: "Theme",
-                    subtitle: "Light theme",
-                    onTap: () => _changeTheme(context),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
+              const SizedBox(height: 10),
 
-            // -------- APP SETTINGS --------
-            const Text(
-              "App Settings",
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.pink,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Card(
-              elevation: 3,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                children: [
-                  _buildSettingItem(
-                    icon: Icons.phone,
-                    title: "Emergency Contacts",
-                    subtitle: "Manage emergency numbers",
-                    onTap: () => _openEmergencyContacts(context),
-                  ),
-                  const Divider(height: 1, indent: 16),
-                  _buildSettingItem(
-                    icon: Icons.devices,
-                    title: "Device Settings",
-                    subtitle: "Configure device preferences",
-                    onTap: () => _openDeviceSettings(context),
-                  ),
-                  const Divider(height: 1, indent: 16),
-                  _buildSettingItem(
-                    icon: Icons.location_on,
-                    title: "Location Settings",
-                    subtitle: "Location tracking preferences",
-                    onTap: () => _openLocationSettings(context),
-                  ),
-                  const Divider(height: 1, indent: 16),
-                  _buildSettingItem(
-                    icon: Icons.volume_up,
-                    title: "Sound & Vibration",
-                    subtitle: "Alert sounds and vibrations",
-                    onTap: () => _openSoundSettings(context),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // ACCOUNT
+                      _sectionLabel("Account"),
+                      _card(
+                        child: Column(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.all(14),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 50,
+                                    height: 50,
+                                    decoration: BoxDecoration(
+                                      gradient: const LinearGradient(
+                                        colors: [
+                                          Color(0xFF7B4F8E),
+                                          Color(0xFF9B6FA3),
+                                        ],
+                                      ),
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: const Color(
+                                            0xFF7B4F8E,
+                                          ).withOpacity(0.3),
+                                          blurRadius: 8,
+                                        ),
+                                      ],
+                                    ),
+                                    child: const Icon(
+                                      Icons.person_rounded,
+                                      color: Colors.white,
+                                      size: 26,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 14),
+                                  const Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          "Malaika",
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.w800,
+                                            fontSize: 15,
+                                            color: Colors.black87,
+                                          ),
+                                        ),
+                                        SizedBox(height: 2),
+                                        Text(
+                                          "malaika@example.com",
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  GestureDetector(
+                                    onTap: () =>
+                                        _showComingSoon("Edit Profile"),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(7),
+                                      decoration: BoxDecoration(
+                                        color: const Color(
+                                          0xFF7B4F8E,
+                                        ).withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(9),
+                                      ),
+                                      child: const Icon(
+                                        Icons.edit_rounded,
+                                        color: Color(0xFF7B4F8E),
+                                        size: 18,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            _divider(),
+                            _arrowRow(
+                              Icons.lock_rounded,
+                              "Change Password",
+                              Colors.purple,
+                              onTap: () => _showComingSoon("Change Password"),
+                              badge: "Soon",
+                            ),
+                            _divider(),
+                            _arrowRow(
+                              Icons.contacts_rounded,
+                              "Emergency Contacts",
+                              Colors.red,
+                              onTap: () =>
+                                  _showComingSoon("Emergency Contacts"),
+                              badge: "Soon",
+                            ),
+                          ],
+                        ),
+                      ),
 
-            // -------- SAFETY SETTINGS --------
-            const Text(
-              "Safety Features",
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.pink,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Card(
-              elevation: 3,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                children: [
-                  _buildSwitchSetting(
-                  icon: Icons.vibration,
-                    title: "Shake to Alert",
-                    subtitle: "Shake phone to send emergency alert",
-                    value: true,
-                    onChanged: (value) {},
-                  ),
-                  const Divider(height: 1, indent: 16),
-                  _buildSwitchSetting(
-                    icon: Icons.power_settings_new,
-                    title: "Power Button SOS",
-                    subtitle: "Press power button 3 times for SOS",
-                    value: true,
-                    onChanged: (value) {},
-                  ),
-                  const Divider(height: 1, indent: 16),
-                  _buildSettingItem(
-                    icon: Icons.timer,
-                    title: "SOS Timer",
-                    subtitle: "Set countdown duration",
-                    onTap: () => _setSOSTimer(context),
-                  ),
-                  const Divider(height: 1, indent: 16),
-                  _buildSettingItem(
-                    icon: Icons.warning,
-                    title: "Alert Preferences",
-                    subtitle: "Customize alert types",
-                    onTap: () => _openAlertPreferences(context),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
+                      const SizedBox(height: 14),
 
-            // -------- ACCOUNT MANAGEMENT --------
-            const Text(
-              "Account Management",
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.pink,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Card(
-              elevation: 3,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                children: [
-                  _buildSettingItem(
-                    icon: Icons.lock_reset,
-                    title: "Change Password",
-                    subtitle: "Update your password",
-                    onTap: () => _changePassword(context),
-                  ),
-                  const Divider(height: 1, indent: 16),
-                  _buildSettingItem(
-                    icon: Icons.email,
-                    title: "Change Email",
-                    subtitle: "Update your email address",
-                    onTap: () => _changeEmail(context),
-                  ),
-                  const Divider(height: 1, indent: 16),
-                  _buildSettingItem(
-                    icon: Icons.phone_iphone,
-                    title: "Change Phone Number",
-                    subtitle: "Update your phone number",
-                    onTap: () => _changePhoneNumber(context),
-                  ),
-                  const Divider(height: 1, indent: 16),
-                  _buildSettingItem(
-                    icon: Icons.delete,
-                    title: "Delete Account",
-                    subtitle: "Permanently delete your account",
-                    color: Colors.red,
-                    onTap: () => _deleteAccount(context),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
+                      // SAFETY FEATURES
+                      _sectionLabel("Safety Features"),
+                      _card(
+                        child: Column(
+                          children: [
+                            _toggleRow(
+                              Icons.screen_rotation_rounded,
+                              "Shake to Alert",
+                              "Shake phone 3× to send emergency alert",
+                              Colors.deepOrange,
+                              _shakeToAlert,
+                              (v) => setState(() => _shakeToAlert = v),
+                            ),
+                            _divider(),
+                            _toggleRow(
+                              Icons.power_settings_new_rounded,
+                              "Power Button SOS",
+                              "Press power button 3× for SOS",
+                              Colors.red,
+                              _powerButtonSOS,
+                              (v) => setState(() => _powerButtonSOS = v),
+                            ),
+                            _divider(),
+                            // SOS Timer
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 10,
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(7),
+                                    decoration: BoxDecoration(
+                                      color: Colors.orange.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(9),
+                                    ),
+                                    child: const Icon(
+                                      Icons.timer_rounded,
+                                      color: Colors.orange,
+                                      size: 18,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  const Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          "SOS Timer",
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w700,
+                                            color: Colors.black87,
+                                          ),
+                                        ),
+                                        Text(
+                                          "Countdown before sending alert",
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: Colors.grey,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.shade100,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        GestureDetector(
+                                          onTap: () {
+                                            if (_sosTimerSeconds > 3)
+                                              setState(
+                                                () => _sosTimerSeconds--,
+                                              );
+                                          },
+                                          child: Container(
+                                            width: 32,
+                                            height: 32,
+                                            decoration: BoxDecoration(
+                                              color: _sosTimerSeconds > 3
+                                                  ? const Color(
+                                                      0xFF7B4F8E,
+                                                    ).withOpacity(0.1)
+                                                  : Colors.grey.shade200,
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                            ),
+                                            child: Icon(
+                                              Icons.remove_rounded,
+                                              size: 16,
+                                              color: _sosTimerSeconds > 3
+                                                  ? const Color(0xFF7B4F8E)
+                                                  : Colors.grey,
+                                            ),
+                                          ),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                          ),
+                                          child: Text(
+                                            "${_sosTimerSeconds}s",
+                                            style: const TextStyle(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w800,
+                                              color: Colors.black87,
+                                            ),
+                                          ),
+                                        ),
+                                        GestureDetector(
+                                          onTap: () {
+                                            if (_sosTimerSeconds < 15)
+                                              setState(
+                                                () => _sosTimerSeconds++,
+                                              );
+                                          },
+                                          child: Container(
+                                            width: 32,
+                                            height: 32,
+                                            decoration: BoxDecoration(
+                                              color: _sosTimerSeconds < 15
+                                                  ? const Color(
+                                                      0xFF7B4F8E,
+                                                    ).withOpacity(0.1)
+                                                  : Colors.grey.shade200,
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                            ),
+                                            child: Icon(
+                                              Icons.add_rounded,
+                                              size: 16,
+                                              color: _sosTimerSeconds < 15
+                                                  ? const Color(0xFF7B4F8E)
+                                                  : Colors.grey,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
 
-            // -------- SUPPORT --------
-            const Text(
-              "Support",
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.pink,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Card(
-              elevation: 3,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                children: [
-                  _buildSettingItem(
-                    icon: Icons.help,
-                    title: "Help & Support",
-                    subtitle: "Get help and contact support",
-                    onTap: () => _openHelpSupport(context),
-                  ),
-                  const Divider(height: 1, indent: 16),
-                  _buildSettingItem(
-                    icon: Icons.feedback,
-                    title: "Send Feedback",
-                    subtitle: "Share your feedback with us",
-                    onTap: () => _sendFeedback(context),
-                  ),
-                  const Divider(height: 1, indent: 16),
-                  _buildSettingItem(
-                    icon: Icons.star,
-                    title: "Rate App",
-                    subtitle: "Rate us on app store",
-                    onTap: () => _rateApp(context),
-                  ),
-                  const Divider(height: 1, indent: 16),
-                  _buildSettingItem(
-                    icon: Icons.share,
-                    title: "Share App",
-                    subtitle: "Share with friends and family",
-                    onTap: () => _shareApp(context),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
+                      const SizedBox(height: 14),
 
-            // -------- ABOUT --------
-            const Text(
-              "About",
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.pink,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Card(
-              elevation: 3,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                children: [
-                  _buildSettingItem(
-                    icon: Icons.info,
-                    title: "App Information",
-                    subtitle: "Version 1.0.0 • Build 2024.01",
-                    onTap: () => _showAppInfo(context),
-                  ),
-                  const Divider(height: 1, indent: 16),
-                  _buildSettingItem(
-                    icon: Icons.privacy_tip,
-                    title: "Privacy Policy",
-                    subtitle: "Read our privacy policy",
-                    onTap: () => _openPrivacyPolicy(context),
-                  ),
-                  const Divider(height: 1, indent: 16),
-                  _buildSettingItem(
-                    icon: Icons.description,
-                    title: "Terms of Service",
-                    subtitle: "Read our terms and conditions",
-                    onTap: () => _openTermsOfService(context),
-                  ),
-                  const Divider(height: 1, indent: 16),
-                  _buildSettingItem(
-                    icon: Icons.update,
-                    title: "Check for Updates",
-                    subtitle: "Check for latest version",
-                    onTap: () => _checkForUpdates(context),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 30),
+                      // SOUND & VIBRATION
+                      _sectionLabel("Sound & Vibration"),
+                      _card(
+                        child: Column(
+                          children: [
+                            _toggleRow(
+                              Icons.volume_up_rounded,
+                              "Sound",
+                              "Alert sounds for notifications",
+                              Colors.purple,
+                              _soundEnabled,
+                              (v) => setState(() => _soundEnabled = v),
+                            ),
+                            _divider(),
+                            _toggleRow(
+                              Icons.vibration_rounded,
+                              "Vibration",
+                              "Vibrate on alerts",
+                              Colors.teal,
+                              _vibrationEnabled,
+                              (v) => setState(() => _vibrationEnabled = v),
+                            ),
+                          ],
+                        ),
+                      ),
 
-            // -------- LOGOUT BUTTON --------
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                      const SizedBox(height: 14),
+
+                      // APP INFO
+                      _sectionLabel("App Info"),
+                      _card(
+                        child: Column(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 14,
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(7),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue.shade50,
+                                      borderRadius: BorderRadius.circular(9),
+                                    ),
+                                    child: Icon(
+                                      Icons.info_rounded,
+                                      color: Colors.blue.shade500,
+                                      size: 18,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  const Expanded(
+                                    child: Text(
+                                      "App Version",
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue.shade50,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Text(
+                                      "v1.0.0",
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.blue.shade700,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            _divider(),
+                            _arrowRow(
+                              Icons.system_update_rounded,
+                              "Check for Updates",
+                              Colors.green,
+                              onTap: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: const Text('App is up to date! ✅'),
+                                    backgroundColor: Colors.green,
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // LOGOUT
+                      GestureDetector(
+                        onTap: _showLogoutDialog,
+                        child: Container(
+                          width: double.infinity,
+                          height: 54,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: Colors.red.shade300,
+                              width: 1.5,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.red.withOpacity(0.1),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.logout_rounded,
+                                color: Colors.red.shade500,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                "Logout",
+                                style: TextStyle(
+                                  color: Colors.red.shade500,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 14),
+                      Center(
+                        child: Text(
+                          "Women Safety App v1.0.0",
+                          style: TextStyle(
+                            color: Colors.grey.shade500,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  elevation: 2,
                 ),
-                icon: const Icon(Icons.logout, color: Colors.white, size: 24),
-                label: const Text(
-                  "Logout",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                onPressed: () => _logout(context),
               ),
-            ),
-            const SizedBox(height: 20),
-
-            // -------- VERSION INFO --------
-            Center(
-              child: Text(
-                "Women Safety App v1.0.0",
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 12,
-                ),
-              ),
-            ),
-            const SizedBox(height: 10),
-            Center(
-              child: Text(
-                "© 2024 Safety Tech Inc. All rights reserved.",
-                style: TextStyle(
-                  color: Colors.grey[500],
-                  fontSize: 10,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSettingItem({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    VoidCallback? onTap,
-    Color? color,
-  }) {
-    return ListTile(
-      leading: Icon(icon, color: color ?? Colors.pink),
-      title: Text(
-        title,
-        style: TextStyle(
-          fontWeight: FontWeight.w500,
-          color: color ?? Colors.black,
-        ),
-      ),
-      subtitle: Text(subtitle),
-      trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-      onTap: onTap,
-    );
-  }
-
-  Widget _buildSwitchSetting({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required bool value,
-    required Function(bool) onChanged,
-  }) {
-    return ListTile(
-      leading: Icon(icon, color: Colors.pink),
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
-      subtitle: Text(subtitle),
-      trailing: Switch(
-        value: value,
-        onChanged: onChanged,
-        activeColor: Colors.pink,
-      ),
-    );
-  }
-
-  // -------- ACTION METHODS --------
-  
-  void _editProfile(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => Scaffold(
-          appBar: AppBar(
-            title: const Text("Edit Profile"),
-            backgroundColor: Colors.pink,
+            ],
           ),
-          body: const Center(child: Text("Edit Profile Page")),
         ),
       ),
     );
   }
 
-  void _openNotificationsSettings(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => Scaffold(
-          appBar: AppBar(
-            title: const Text("Notification Settings"),
-            backgroundColor: Colors.pink,
-          ),
-          body: const Center(child: Text("Notification Settings Page")),
+  Widget _card({required Widget child}) => Container(
+    margin: const EdgeInsets.only(bottom: 2),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(20),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.08),
+          blurRadius: 12,
+          offset: const Offset(0, 4),
         ),
-      ),
-    );
-  }
-
-  void _openPrivacySettings(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => Scaffold(
-          appBar: AppBar(
-            title: const Text("Privacy & Security"),
-            backgroundColor: Colors.pink,
-          ),
-          body: const Center(child: Text("Privacy Settings Page")),
-        ),
-      ),
-    );
-  }
-
-  void _changeLanguage(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Select Language"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              title: const Text("English"),
-              trailing: const Icon(Icons.check, color: Colors.pink),
-              onTap: () => Navigator.pop(context),
-            ),
-            ListTile(
-              title: const Text("Spanish"),
-              onTap: () => Navigator.pop(context),
-            ),
-            ListTile(
-              title: const Text("French"),
-              onTap: () => Navigator.pop(context),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _changeTheme(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Select Theme"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              title: const Text("Light Theme"),
-              trailing: const Icon(Icons.check, color: Colors.pink),
-              onTap: () => Navigator.pop(context),
-            ),
-            ListTile(
-              title: const Text("Dark Theme"),
-              onTap: () => Navigator.pop(context),
-            ),
-            ListTile(
-              title: const Text("System Default"),
-              onTap: () => Navigator.pop(context),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _openEmergencyContacts(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => Scaffold(
-          appBar: AppBar(
-            title: const Text("Emergency Contacts"),
-            backgroundColor: Colors.pink,
-          ),
-          body: const Center(child: Text("Emergency Contacts Page")),
-        ),
-      ),
-    );
-  }
-
-  void _openDeviceSettings(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => Scaffold(
-          appBar: AppBar(
-            title: const Text("Device Settings"),
-            backgroundColor: Colors.pink,
-          ),
-          body: const Center(child: Text("Device Settings Page")),
-        ),
-      ),
-    );
-  }
-
-  void _openLocationSettings(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => Scaffold(
-          appBar: AppBar(
-            title: const Text("Location Settings"),
-            backgroundColor: Colors.pink,
-          ),
-          body: const Center(child: Text("Location Settings Page")),
-        ),
-      ),
-    );
-  }
-
-  void _openSoundSettings(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => Scaffold(
-          appBar: AppBar(
-            title: const Text("Sound & Vibration"),
-            backgroundColor: Colors.pink,
-          ),
-          body: const Center(child: Text("Sound Settings Page")),
-        ),
-      ),
-    );
-  }
-
-  void _setSOSTimer(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("SOS Timer"),
-        content: const Text("Set countdown duration before sending alert"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Save"),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _openAlertPreferences(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => Scaffold(
-          appBar: AppBar(
-            title: const Text("Alert Preferences"),
-            backgroundColor: Colors.pink,
-          ),
-          body: const Center(child: Text("Alert Preferences Page")),
-        ),
-      ),
-    );
-  }
-
-  void _changePassword(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => Scaffold(
-          appBar: AppBar(
-            title: const Text("Change Password"),
-            backgroundColor: Colors.pink,
-          ),
-          body: const Center(child: Text("Change Password Page")),
-        ),
-      ),
-    );
-  }
-
-  void _changeEmail(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => Scaffold(
-          appBar: AppBar(
-            title: const Text("Change Email"),
-            backgroundColor: Colors.pink,
-          ),
-          body: const Center(child: Text("Change Email Page")),
-        ),
-      ),
-    );
-  }
-
-  void _changePhoneNumber(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => Scaffold(
-          appBar: AppBar(
-            title: const Text("Change Phone Number"),
-            backgroundColor: Colors.pink,
-          ),
-          body: const Center(child: Text("Change Phone Number Page")),
-        ),
-      ),
-    );
-  }
-
-  void _deleteAccount(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Delete Account"),
-        content: const Text(
-          "Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently lost.",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
-          ),
-          TextButton(
-            onPressed: () {
-              // Delete account logic
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text("Account deletion requested"),
-                  backgroundColor: Colors.red,
-                ),
-              );
-            },
-            child: const Text("Delete", style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _openHelpSupport(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => Scaffold(
-          appBar: AppBar(
-            title: const Text("Help & Support"),
-            backgroundColor: Colors.pink,
-          ),
-          body: const Center(child: Text("Help & Support Page")),
-        ),
-      ),
-    );
-  }
-
-  void _sendFeedback(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => Scaffold(
-          appBar: AppBar(
-            title: const Text("Send Feedback"),
-            backgroundColor: Colors.pink,
-          ),
-          body: const Center(child: Text("Feedback Page")),
-        ),
-      ),
-    );
-  }
-
-  void _rateApp(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Opening app store for rating"),
-        duration: Duration(seconds: 2),
-      ),
-    );
-  }
-
-  void _shareApp(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Sharing app..."),
-        duration: Duration(seconds: 2),
-      ),
-    );
-  }
-
-  void _showAppInfo(BuildContext context) {
-    showAboutDialog(
-      context: context,
-      applicationName: "Women Safety App",
-      applicationVersion: "1.0.0",
-      applicationIcon: const Icon(Icons.security, color: Colors.pink),
-      applicationLegalese: "© 2024 Safety Tech Inc.",
-      children: [
-        const SizedBox(height: 10),
-        const Text("A comprehensive safety app for women"),
-        const SizedBox(height: 10),
-        const Text("Features:"),
-        const Text("• Emergency Alert System"),
-        const Text("• Real-time Location Tracking"),
-        const Text("• Guardian Connection"),
-        const Text("• Police Station Locator"),
       ],
-    );
-  }
+    ),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: child,
+    ),
+  );
 
-  void _openPrivacyPolicy(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => Scaffold(
-          appBar: AppBar(
-            title: const Text("Privacy Policy"),
-            backgroundColor: Colors.pink,
-          ),
-          body: const SingleChildScrollView(
-            padding: EdgeInsets.all(16.0),
-            child: Text("Privacy Policy content..."),
-          ),
-        ),
+  Widget _sectionLabel(String label) => Padding(
+    padding: const EdgeInsets.only(bottom: 8, left: 4),
+    child: Text(
+      label,
+      style: const TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w800,
+        color: Colors.white70,
+        letterSpacing: 0.5,
       ),
-    );
-  }
+    ),
+  );
 
-  void _openTermsOfService(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => Scaffold(
-          appBar: AppBar(
-            title: const Text("Terms of Service"),
-            backgroundColor: Colors.pink,
-          ),
-          body: const SingleChildScrollView(
-            padding: EdgeInsets.all(16.0),
-            child: Text("Terms of Service content..."),
-          ),
-        ),
-      ),
-    );
-  }
+  Widget _divider() => const Divider(height: 1, indent: 16, endIndent: 16);
 
-  void _checkForUpdates(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Check for Updates"),
-        content: const Text("You are using the latest version of the app."),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("OK"),
+  Widget _toggleRow(
+    IconData icon,
+    String title,
+    String subtitle,
+    Color color,
+    bool value,
+    Function(bool) onChanged,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(7),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(9),
+            ),
+            child: Icon(icon, color: color, size: 18),
           ),
-        ],
-      ),
-    );
-  }
-
-  void _logout(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Logout"),
-        content: const Text("Are you sure you want to logout?"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
-          ),
-          TextButton(
-            onPressed: () {
-              // Perform logout
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text("Logged out successfully"),
-                  backgroundColor: Colors.green,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black87,
+                  ),
                 ),
-              );
-              // In real app, navigate to login screen
-            },
-            child: const Text("Logout", style: TextStyle(color: Colors.red)),
+                Text(
+                  subtitle,
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: value,
+            onChanged: onChanged,
+            activeColor: const Color(0xFF7B4F8E),
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _arrowRow(
+    IconData icon,
+    String title,
+    Color color, {
+    required VoidCallback onTap,
+    String? badge,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(7),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(9),
+              ),
+              child: Icon(icon, color: color, size: 18),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
+            if (badge != null)
+              Container(
+                margin: const EdgeInsets.only(right: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange.shade300, width: 1),
+                ),
+                child: Text(
+                  badge,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: Colors.orange.shade700,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 14,
+              color: Colors.grey.shade400,
+            ),
+          ],
+        ),
       ),
     );
   }

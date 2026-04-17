@@ -9,7 +9,6 @@ class HelplinesScreen extends StatefulWidget {
 }
 
 class _HelplinesScreenState extends State<HelplinesScreen> {
-  // ---------------- LIST OF HELPLINES ----------------
   final List<Map<String, dynamic>> helplines = [
     {
       "name": "Punjab Police Women Cell",
@@ -93,180 +92,297 @@ class _HelplinesScreenState extends State<HelplinesScreen> {
     },
   ];
 
-  // Filter options
   String _selectedFilter = "All";
-  final List<String> _filters = ["All", "Emergency", "Police", "Crisis Center", "Legal Aid", "Shelter"];
-
-  // Search functionality
+  final List<String> _filters = [
+    "All",
+    "Emergency",
+    "Police",
+    "Crisis Center",
+    "Legal Aid",
+    "Shelter",
+  ];
   String _searchQuery = "";
   bool _showEmergencyOnly = false;
 
-  // ---------------- GET FILTERED HELPLINES ----------------
   List<Map<String, dynamic>> get _filteredHelplines {
     List<Map<String, dynamic>> filtered = List.from(helplines);
-
-    // Apply search filter
     if (_searchQuery.isNotEmpty) {
-      filtered = filtered.where((helpline) {
-        return helpline['name'].toLowerCase().contains(_searchQuery.toLowerCase()) ||
-            helpline['location'].toLowerCase().contains(_searchQuery.toLowerCase()) ||
-            helpline['number'].contains(_searchQuery);
+      filtered = filtered.where((h) {
+        return h['name'].toLowerCase().contains(_searchQuery.toLowerCase()) ||
+            h['location'].toLowerCase().contains(_searchQuery.toLowerCase()) ||
+            h['number'].contains(_searchQuery);
       }).toList();
     }
-
-    // Apply category filter
     if (_selectedFilter != "All") {
-      filtered = filtered.where((helpline) {
-        if (_selectedFilter == "Emergency") {
-          return helpline['emergency'] == true;
-        }
-        return helpline['type'] == _selectedFilter;
+      filtered = filtered.where((h) {
+        if (_selectedFilter == "Emergency") return h['emergency'] == true;
+        return h['type'] == _selectedFilter;
       }).toList();
     }
-
-    // Apply emergency only filter
     if (_showEmergencyOnly) {
-      filtered = filtered.where((helpline) => helpline['emergency'] == true).toList();
+      filtered = filtered.where((h) => h['emergency'] == true).toList();
     }
-
     return filtered;
   }
 
-  // ---------------- MAKE PHONE CALL ----------------
   Future<void> _makePhoneCall(String number) async {
     final Uri url = Uri(scheme: 'tel', path: number);
     if (await canLaunchUrl(url)) {
       await launchUrl(url);
-    } else {
-      _showErrorDialog("Could not call $number");
     }
   }
 
-  // ---------------- SEND SMS ----------------
   Future<void> _sendSMS(String number) async {
     final Uri url = Uri(scheme: 'sms', path: number);
     if (await canLaunchUrl(url)) {
       await launchUrl(url);
-    } else {
-      _showErrorDialog("Could not send SMS to $number");
     }
   }
 
-  // ---------------- SHOW HELPLINE DETAILS ----------------
-  void _showHelplineDetails(Map<String, dynamic> helpline) {
+  // ── TYPE CONFIG ────────────────────────────────────────────────
+  Map<String, dynamic> _typeConfig(String type) {
+    switch (type) {
+      case "Police":
+        return {'icon': Icons.local_police_rounded, 'color': Colors.blue};
+      case "Emergency":
+        return {'icon': Icons.emergency_rounded, 'color': Colors.red};
+      case "Crisis Center":
+        return {'icon': Icons.medical_services_rounded, 'color': Colors.orange};
+      case "Legal Aid":
+        return {'icon': Icons.gavel_rounded, 'color': Colors.purple};
+      case "Shelter":
+        return {'icon': Icons.home_rounded, 'color': Colors.green};
+      case "Counseling":
+        return {'icon': Icons.psychology_rounded, 'color': Colors.teal};
+      case "Government":
+        return {'icon': Icons.account_balance_rounded, 'color': Colors.indigo};
+      default:
+        return {'icon': Icons.help_rounded, 'color': const Color(0xFF7B4F8E)};
+    }
+  }
+
+  void _showDetails(Map<String, dynamic> h) {
+    final config = _typeConfig(h['type']);
+    final Color color = config['color'] as Color;
+
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return Container(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 60,
-                  height: 4,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Header
+            Row(
+              children: [
+                Container(
+                  width: 50,
+                  height: 50,
                   decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(2),
+                    color: color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(
+                    config['icon'] as IconData,
+                    color: color,
+                    size: 26,
                   ),
                 ),
-              ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  _getIconForType(helpline['type']),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          helpline['name'],
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        h['name'],
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.location_on_rounded,
+                            size: 13,
+                            color: Colors.grey.shade500,
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Icon(Icons.location_on, size: 14, color: Colors.grey[600]),
-                            const SizedBox(width: 4),
-                            Text(
-                              helpline['location'],
-                              style: TextStyle(color: Colors.grey[600]),
+                          const SizedBox(width: 3),
+                          Text(
+                            h['location'],
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade500,
                             ),
-                          ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                if (h['emergency'])
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.red.shade200),
+                    ),
+                    child: Text(
+                      "URGENT",
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.red.shade700,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+            const Divider(),
+            const SizedBox(height: 12),
+
+            _detailRow(
+              Icons.phone_rounded,
+              "Number",
+              h['number'],
+              Colors.green,
+            ),
+            const SizedBox(height: 10),
+            _detailRow(
+              Icons.access_time_rounded,
+              "Available",
+              h['available'],
+              Colors.blue,
+            ),
+            const SizedBox(height: 10),
+            _detailRow(Icons.category_rounded, "Type", h['type'], color),
+            const SizedBox(height: 20),
+
+            Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.pop(context);
+                      _makePhoneCall(h['number']);
+                    },
+                    child: Container(
+                      height: 50,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF388E3C), Color(0xFF66BB6A)],
                         ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              _buildDetailRow(Icons.phone, "Phone Number", helpline['number']),
-              const SizedBox(height: 12),
-              _buildDetailRow(Icons.access_time, "Available", helpline['available']),
-              const SizedBox(height: 12),
-              _buildDetailRow(Icons.category, "Service Type", helpline['type']),
-              const SizedBox(height: 12),
-              _buildDetailRow(
-                Icons.warning,
-                "Emergency Service",
-                helpline['emergency'] ? "Yes - 24/7 Available" : "No - Working Hours",
-              ),
-              const SizedBox(height: 30),
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.green.withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
                       ),
-                      icon: const Icon(Icons.call, color: Colors.white),
-                      label: const Text("Call Now", style: TextStyle(color: Colors.white)),
-                      onPressed: () {
-                        Navigator.pop(context);
-                        _makePhoneCall(helpline['number']);
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 15),
-                        side: const BorderSide(color: Colors.blue),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.call_rounded,
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            "Call Now",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
                       ),
-                      icon: const Icon(Icons.message, color: Colors.blue),
-                      label: const Text("Send SMS", style: TextStyle(color: Colors.blue)),
-                      onPressed: () {
-                        Navigator.pop(context);
-                        _sendSMS(helpline['number']);
-                      },
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 10),
-            ],
-          ),
-        );
-      },
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.pop(context);
+                      _sendSMS(h['number']);
+                    },
+                    child: Container(
+                      height: 50,
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: Colors.blue.shade300,
+                          width: 1.5,
+                        ),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.message_rounded,
+                            color: Colors.blue.shade400,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            "Send SMS",
+                            style: TextStyle(
+                              color: Colors.blue.shade600,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _buildDetailRow(IconData icon, String label, String value) {
+  Widget _detailRow(IconData icon, String label, String value, Color color) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 18, color: Colors.pink),
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, size: 16, color: color),
+        ),
         const SizedBox(width: 12),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -274,18 +390,15 @@ class _HelplinesScreenState extends State<HelplinesScreen> {
             Text(
               label,
               style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
+                fontSize: 11,
+                color: Colors.grey.shade500,
                 fontWeight: FontWeight.w500,
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             Text(
               value,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
             ),
           ],
         ),
@@ -293,373 +406,435 @@ class _HelplinesScreenState extends State<HelplinesScreen> {
     );
   }
 
-  Widget _getIconForType(String type) {
-    switch (type) {
-      case "Police":
-        return CircleAvatar(
-          backgroundColor: Colors.blue[50],
-          child: const Icon(Icons.local_police, color: Colors.blue),
-        );
-      case "Emergency":
-        return CircleAvatar(
-          backgroundColor: Colors.red[50],
-          child: const Icon(Icons.emergency, color: Colors.red),
-        );
-      case "Crisis Center":
-        return CircleAvatar(
-          backgroundColor: Colors.orange[50],
-          child: const Icon(Icons.medical_services, color: Colors.orange),
-        );
-      case "Legal Aid":
-        return CircleAvatar(
-          backgroundColor: Colors.purple[50],
-          child: const Icon(Icons.gavel, color: Colors.purple),
-        );
-      case "Shelter":
-        return CircleAvatar(
-          backgroundColor: Colors.green[50],
-          child: const Icon(Icons.home, color: Colors.green),
-        );
-      case "Counseling":
-        return CircleAvatar(
-          backgroundColor: Colors.teal[50],
-          child: const Icon(Icons.psychology, color: Colors.teal),
-        );
-      default:
-        return CircleAvatar(
-          backgroundColor: Colors.pink[50],
-          child: const Icon(Icons.help, color: Colors.pink),
-        );
-    }
-  }
-
-  void _showErrorDialog(String message) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Error"),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("OK"),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showAddHelplineDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Add Custom Helpline"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              decoration: const InputDecoration(
-                labelText: "Helpline Name",
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              decoration: const InputDecoration(
-                labelText: "Phone Number",
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.phone,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
-          ),
-          TextButton(
-            onPressed: () {
-              // Add custom helpline logic
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Helpline added successfully")),
-              );
-            },
-            child: const Text("Add"),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          "Emergency Helplines",
-          style: TextStyle(color: Colors.white, fontSize: 22),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF7B4F8E), Color(0xFF9B6FA3), Color(0xFFD4B8DA)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            stops: [0.0, 0.3, 1.0],
+          ),
         ),
-        iconTheme: const IconThemeData(color: Colors.white),
-        backgroundColor: Colors.pink,
-        elevation: 4,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: _showAddHelplineDialog,
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Search Bar
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: "Search helplines...",
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // ── APP BAR ───────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.fromLTRB(4, 6, 16, 0),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(
+                        Icons.arrow_back_ios_rounded,
+                        color: Colors.white,
+                      ),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    const Expanded(
+                      child: Text(
+                        "Emergency Helplines",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.white38, width: 1),
+                      ),
+                      child: Text(
+                        "${_filteredHelplines.length} found",
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                filled: true,
-                fillColor: Colors.grey[50],
               ),
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value;
-                });
-              },
-            ),
-          ),
 
-          // Filter Chips
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: _filters.map((filter) {
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8.0),
-                  child: FilterChip(
-                    label: Text(filter),
-                    selected: _selectedFilter == filter,
-                    selectedColor: Colors.pink,
-                    checkmarkColor: Colors.white,
-                    labelStyle: TextStyle(
-                      color: _selectedFilter == filter ? Colors.white : Colors.black,
-                    ),
-                    onSelected: (selected) {
-                      setState(() {
-                        _selectedFilter = selected ? filter : "All";
-                      });
-                    },
+              const SizedBox(height: 10),
+
+              // ── SEARCH BAR ────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Container(
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.95),
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
                   ),
-                );
-              }).toList(),
-            ),
-          ),
-
-          // Emergency Only Toggle
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child: Row(
-              children: [
-                Checkbox(
-                  value: _showEmergencyOnly,
-                  onChanged: (value) {
-                    setState(() {
-                      _showEmergencyOnly = value ?? false;
-                    });
-                  },
-                  activeColor: Colors.pink,
-                ),
-                const Text("Show Emergency Services Only"),
-              ],
-            ),
-          ),
-
-          // Helplines Count
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  "Available Helplines (${_filteredHelplines.length})",
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
+                  child: TextField(
+                    onChanged: (v) => setState(() => _searchQuery = v),
+                    decoration: InputDecoration(
+                      hintText: "Search helplines...",
+                      hintStyle: TextStyle(
+                        color: Colors.grey.shade400,
+                        fontSize: 14,
+                      ),
+                      prefixIcon: Icon(
+                        Icons.search_rounded,
+                        color: Colors.grey.shade400,
+                        size: 20,
+                      ),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 13),
+                    ),
                   ),
                 ),
-                if (_filteredHelplines.isEmpty)
-                  TextButton.icon(
-                    icon: const Icon(Icons.refresh),
-                    label: const Text("Reset Filters"),
-                    onPressed: () {
-                      setState(() {
-                        _selectedFilter = "All";
-                        _searchQuery = "";
-                        _showEmergencyOnly = false;
-                      });
-                    },
-                  ),
-              ],
-            ),
-          ),
+              ),
 
-          const SizedBox(height: 8),
+              const SizedBox(height: 10),
 
-          // Helplines List
-          Expanded(
-            child: _filteredHelplines.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.search_off, size: 60, color: Colors.grey[400]),
-                        const SizedBox(height: 16),
-                        const Text(
-                          "No helplines found",
-                          style: TextStyle(fontSize: 18, color: Colors.grey),
+              // ── FILTER CHIPS ──────────────────────────────
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    // Emergency toggle pill
+                    GestureDetector(
+                      onTap: () => setState(
+                        () => _showEmergencyOnly = !_showEmergencyOnly,
+                      ),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        margin: const EdgeInsets.only(right: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
                         ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          "Try changing your search or filters",
-                          style: TextStyle(color: Colors.grey),
+                        decoration: BoxDecoration(
+                          color: _showEmergencyOnly
+                              ? Colors.red
+                              : Colors.white.withOpacity(0.25),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: _showEmergencyOnly
+                                ? Colors.red
+                                : Colors.white54,
+                            width: 1.2,
+                          ),
                         ),
-                        const SizedBox(height: 20),
-                        ElevatedButton(
-                          onPressed: () {
-                            setState(() {
-                              _selectedFilter = "All";
-                              _searchQuery = "";
-                              _showEmergencyOnly = false;
-                            });
-                          },
-                          child: const Text("Reset All Filters"),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.emergency_rounded,
+                              size: 14,
+                              color: _showEmergencyOnly
+                                  ? Colors.white
+                                  : Colors.white,
+                            ),
+                            const SizedBox(width: 5),
+                            Text(
+                              "Urgent Only",
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    itemCount: _filteredHelplines.length,
-                    itemBuilder: (context, index) {
-                      final helpline = _filteredHelplines[index];
-                      return Card(
-                        elevation: 2,
-                        margin: const EdgeInsets.only(bottom: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                    // Category filters
+                    ..._filters.map((f) {
+                      final isSelected = _selectedFilter == f;
+                      return GestureDetector(
+                        onTap: () => setState(
+                          () => _selectedFilter = isSelected ? "All" : f,
                         ),
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(12),
-                          onTap: () => _showHelplineDetails(helpline),
-                          child: Padding(
-                            padding: const EdgeInsets.all(12.0),
-                            child: Row(
-                              children: [
-                                _getIconForType(helpline['type']),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Expanded(
-                                            child: Text(
-                                              helpline['name'],
-                                              style: const TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                          ),
-                                          if (helpline['emergency'])
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(
-                                                  horizontal: 8, vertical: 2),
-                                              decoration: BoxDecoration(
-                                                color: Colors.red[50],
-                                                borderRadius: BorderRadius.circular(4),
-                                              ),
-                                              child: Text(
-                                                "EMERGENCY",
-                                                style: TextStyle(
-                                                  fontSize: 10,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Colors.red[700],
-                                                ),
-                                              ),
-                                            ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Row(
-                                        children: [
-                                          Icon(Icons.location_on,
-                                              size: 14, color: Colors.grey[600]),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            helpline['location'],
-                                            style: TextStyle(color: Colors.grey[600]),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Icon(Icons.access_time,
-                                              size: 14, color: Colors.grey[600]),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            helpline['available'],
-                                            style: TextStyle(color: Colors.grey[600]),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(
-                                            helpline['number'],
-                                            style: const TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.w600,
-                                              color: Colors.blue,
-                                            ),
-                                          ),
-                                          Row(
-                                            children: [
-                                              IconButton(
-                                                icon: const Icon(Icons.message,
-                                                    color: Colors.blue),
-                                                onPressed: () =>
-                                                    _sendSMS(helpline['number']),
-                                              ),
-                                              IconButton(
-                                                icon: const Icon(Icons.call,
-                                                    color: Colors.green),
-                                                onPressed: () =>
-                                                    _makePhoneCall(helpline['number']),
-                                              ),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          margin: const EdgeInsets.only(right: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? Colors.white
+                                : Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: isSelected ? Colors.white : Colors.white54,
+                              width: 1.2,
+                            ),
+                          ),
+                          child: Text(
+                            f,
+                            style: TextStyle(
+                              color: isSelected
+                                  ? const Color(0xFF7B4F8E)
+                                  : Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
                       );
-                    },
-                  ),
+                    }),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // ── LIST ──────────────────────────────────────
+              Expanded(
+                child: _filteredHelplines.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.search_off_rounded,
+                              size: 56,
+                              color: Colors.white.withOpacity(0.5),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              "No helplines found",
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.white.withOpacity(0.8),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            GestureDetector(
+                              onTap: () => setState(() {
+                                _selectedFilter = "All";
+                                _searchQuery = "";
+                                _showEmergencyOnly = false;
+                              }),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 10,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Text(
+                                  "Reset Filters",
+                                  style: TextStyle(
+                                    color: Color(0xFF7B4F8E),
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+                        itemCount: _filteredHelplines.length,
+                        itemBuilder: (context, index) {
+                          final h = _filteredHelplines[index];
+                          final config = _typeConfig(h['type']);
+                          final Color color = config['color'] as Color;
+
+                          return GestureDetector(
+                            onTap: () => _showDetails(h),
+                            child: Container(
+                              margin: const EdgeInsets.only(bottom: 10),
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(18),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.07),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                children: [
+                                  // Icon
+                                  Container(
+                                    width: 46,
+                                    height: 46,
+                                    decoration: BoxDecoration(
+                                      color: color.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(13),
+                                    ),
+                                    child: Icon(
+                                      config['icon'] as IconData,
+                                      color: color,
+                                      size: 22,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+
+                                  // Info
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                h['name'],
+                                                style: const TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: Colors.black87,
+                                                ),
+                                              ),
+                                            ),
+                                            if (h['emergency'])
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 7,
+                                                      vertical: 2,
+                                                    ),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.red.shade50,
+                                                  borderRadius:
+                                                      BorderRadius.circular(6),
+                                                  border: Border.all(
+                                                    color: Colors.red.shade200,
+                                                  ),
+                                                ),
+                                                child: Text(
+                                                  "URGENT",
+                                                  style: TextStyle(
+                                                    fontSize: 9,
+                                                    fontWeight: FontWeight.w800,
+                                                    color: Colors.red.shade700,
+                                                  ),
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Row(
+                                          children: [
+                                            Icon(
+                                              Icons.location_on_rounded,
+                                              size: 12,
+                                              color: Colors.grey.shade400,
+                                            ),
+                                            const SizedBox(width: 3),
+                                            Text(
+                                              h['location'],
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                color: Colors.grey.shade500,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 10),
+                                            Icon(
+                                              Icons.access_time_rounded,
+                                              size: 12,
+                                              color: Colors.grey.shade400,
+                                            ),
+                                            const SizedBox(width: 3),
+                                            Text(
+                                              h['available'],
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                color: Colors.grey.shade500,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Text(
+                                          h['number'],
+                                          style: TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w800,
+                                            color: color,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+
+                                  // Action buttons
+                                  Column(
+                                    children: [
+                                      GestureDetector(
+                                        onTap: () =>
+                                            _makePhoneCall(h['number']),
+                                        child: Container(
+                                          width: 36,
+                                          height: 36,
+                                          decoration: BoxDecoration(
+                                            color: Colors.green.shade50,
+                                            borderRadius: BorderRadius.circular(
+                                              10,
+                                            ),
+                                          ),
+                                          child: Icon(
+                                            Icons.call_rounded,
+                                            color: Colors.green.shade600,
+                                            size: 18,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      GestureDetector(
+                                        onTap: () => _sendSMS(h['number']),
+                                        child: Container(
+                                          width: 36,
+                                          height: 36,
+                                          decoration: BoxDecoration(
+                                            color: Colors.blue.shade50,
+                                            borderRadius: BorderRadius.circular(
+                                              10,
+                                            ),
+                                          ),
+                                          child: Icon(
+                                            Icons.message_rounded,
+                                            color: Colors.blue.shade600,
+                                            size: 18,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
