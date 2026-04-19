@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:firebase_database/firebase_database.dart';
 
 class HighAlertAreasScreen extends StatefulWidget {
   const HighAlertAreasScreen({super.key});
@@ -12,36 +13,19 @@ class HighAlertAreasScreen extends StatefulWidget {
 
 class _HighAlertAreasScreenState extends State<HighAlertAreasScreen>
     with TickerProviderStateMixin {
+  final DatabaseReference _alertRef = FirebaseDatabase.instance.ref(
+    "high_alert_zones",
+  );
+  List<Map<String, dynamic>> _alertZones = [];
   final MapController mapController = MapController();
+
   LatLng _currentPosition = const LatLng(31.582045, 74.329376);
-  final List<Marker> _markers = [];
-  final List<CircleMarker> _circles = [];
+  List<Marker> _markers = [];
+  List<CircleMarker> _circles = [];
   bool _isLoading = true;
 
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
-
-  // Alert zone data
-  final List<Map<String, dynamic>> _alertZones = [
-    {
-      'label': 'High Risk',
-      'color': Colors.red,
-      'offset': [0.005, 0.005],
-      'radius': 500.0,
-    },
-    {
-      'label': 'Medium Risk',
-      'color': Colors.orange,
-      'offset': [-0.004, 0.003],
-      'radius': 400.0,
-    },
-    {
-      'label': 'Low Risk',
-      'color': Colors.amber,
-      'offset': [0.003, -0.004],
-      'radius': 300.0,
-    },
-  ];
 
   @override
   void initState() {
@@ -50,10 +34,12 @@ class _HighAlertAreasScreenState extends State<HighAlertAreasScreen>
       vsync: this,
       duration: const Duration(milliseconds: 1400),
     )..repeat(reverse: true);
+
     _pulseAnimation = Tween<double>(begin: 1.0, end: 1.12).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
-    _getUserLocation();
+
+    _initializeData();
   }
 
   @override
@@ -62,79 +48,68 @@ class _HighAlertAreasScreenState extends State<HighAlertAreasScreen>
     super.dispose();
   }
 
-  Future<void> _getUserLocation() async {
-    try {
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
-        permission = await Geolocator.requestPermission();
-      }
-      final Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
-      setState(
-        () => _currentPosition = LatLng(position.latitude, position.longitude),
-      );
-    } catch (_) {}
-
-    _buildMarkersAndCircles();
-    setState(() => _isLoading = false);
+  Future<void> _initializeData() async {
+    await _getUserLocation();
+    _listenToAlertZones();
+    if (mounted) setState(() => _isLoading = false);
   }
 
-  void _buildMarkersAndCircles() {
-    // User marker
-    _markers.add(
-      Marker(
-        point: _currentPosition,
-        width: 60,
-        height: 60,
-        child: const Icon(
-          Icons.my_location_rounded,
-          color: Colors.blue,
-          size: 36,
-        ),
-      ),
-    );
-
-    // Alert zone markers & circles
-    for (final zone in _alertZones) {
-      final Color color = zone['color'] as Color;
-      final List offset = zone['offset'] as List;
-      final LatLng point = LatLng(
-        _currentPosition.latitude + (offset[0] as double),
-        _currentPosition.longitude + (offset[1] as double),
+  Future<void> _getUserLocation() async {
+    try {
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
       );
-
-      _markers.add(
-        Marker(
-          point: point,
-          width: 44,
-          height: 44,
-          child: Container(
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.15),
-              shape: BoxShape.circle,
-              border: Border.all(color: color, width: 2),
-            ),
-            child: Icon(Icons.warning_rounded, color: color, size: 22),
-          ),
-        ),
-      );
-
-      _circles.add(
-        CircleMarker(
-          point: point,
-          color: color.withOpacity(0.18),
-          borderColor: color.withOpacity(0.7),
-          borderStrokeWidth: 2,
-          radius: zone['radius'] as double,
-        ),
-      );
+      _currentPosition = LatLng(position.latitude, position.longitude);
+    } catch (e) {
+      debugPrint("Location error: $e");
     }
   }
 
+  // Map ko wapas user ki location par laane ke liye logic
   void _centerMapOnUser() {
-    mapController.move(_currentPosition, 14);
+    mapController.move(_currentPosition, 14.0);
+  }
+
+  void _listenToAlertZones() {
+    _alertRef.onValue.listen((DatabaseEvent event) {
+      final data = event.snapshot.value as Map?;
+      if (data != null && mounted) {
+        List<Map<String, dynamic>> tempZones = [];
+        data.forEach((key, value) {
+          // Safe casting for Firebase Numbers (int/double)
+          double lat = double.tryParse(value['latitude'].toString()) ?? 0.0;
+          double lng = double.tryParse(value['longitude'].toString()) ?? 0.0;
+          double rad = double.tryParse(value['radius'].toString()) ?? 500.0;
+
+          tempZones.add({
+            'label': value['name'] ?? 'Alert Zone',
+            'color': _getRiskColor(value['riskLevel']?.toString()),
+            'lat': lat,
+            'lng': lng,
+            'radius': rad,
+          });
+        });
+
+        setState(() {
+          _alertZones = tempZones;
+          _buildMarkersAndCircles();
+          _isLoading = false;
+        });
+      }
+    });
+  }
+
+  Color _getRiskColor(String? level) {
+    switch (level?.toLowerCase()) {
+      case 'high':
+        return Colors.red;
+      case 'medium':
+        return Colors.orange;
+      case 'low':
+        return Colors.amber;
+      default:
+        return Colors.blue; // Default color agar data missing ho
+    }
   }
 
   @override
@@ -142,7 +117,6 @@ class _HighAlertAreasScreenState extends State<HighAlertAreasScreen>
     return Scaffold(
       body: Stack(
         children: [
-          // ── MAP ───────────────────────────────────────────
           _isLoading
               ? Container(
                   decoration: const BoxDecoration(
@@ -167,14 +141,26 @@ class _HighAlertAreasScreenState extends State<HighAlertAreasScreen>
                       urlTemplate:
                           'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                       userAgentPackageName: 'com.womensafety.app',
-                      subdomains: const ['a', 'b', 'c'],
                     ),
-                    CircleLayer(circles: _circles),
-                    MarkerLayer(markers: _markers),
+                    CircleLayer(
+                      circles: _alertZones
+                          .map(
+                            (zone) => CircleMarker(
+                              point: LatLng(zone['lat'], zone['lng']),
+                              radius: zone['radius'],
+                              useRadiusInMeter: true,
+                              color: zone['color'].withOpacity(0.3),
+                              borderColor: zone['color'],
+                              borderStrokeWidth: 3,
+                            ),
+                          )
+                          .toList(),
+                    ),
+                    MarkerLayer(markers: List.from(_markers)),
                   ],
                 ),
 
-          // ── GRADIENT HEADER OVERLAY ───────────────────────
+          // Header with Title and LIVE Badge
           Positioned(
             top: 0,
             left: 0,
@@ -209,7 +195,6 @@ class _HighAlertAreasScreenState extends State<HighAlertAreasScreen>
                           ),
                         ),
                       ),
-                      // Live badge
                       ScaleTransition(
                         scale: _pulseAnimation,
                         child: Container(
@@ -220,15 +205,8 @@ class _HighAlertAreasScreenState extends State<HighAlertAreasScreen>
                           decoration: BoxDecoration(
                             color: Colors.red,
                             borderRadius: BorderRadius.circular(10),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.red.withOpacity(0.4),
-                                blurRadius: 6,
-                              ),
-                            ],
                           ),
                           child: const Row(
-                            mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(Icons.circle, color: Colors.white, size: 8),
                               SizedBox(width: 5),
@@ -251,7 +229,7 @@ class _HighAlertAreasScreenState extends State<HighAlertAreasScreen>
             ),
           ),
 
-          // ── LEGEND CARD ───────────────────────────────────
+          // Risk Zones Legend (Top Right)
           if (!_isLoading)
             Positioned(
               top: 90 + MediaQuery.of(context).padding.top,
@@ -265,7 +243,6 @@ class _HighAlertAreasScreenState extends State<HighAlertAreasScreen>
                     BoxShadow(
                       color: Colors.black.withOpacity(0.12),
                       blurRadius: 12,
-                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
@@ -294,7 +271,7 @@ class _HighAlertAreasScreenState extends State<HighAlertAreasScreen>
               ),
             ),
 
-          // ── ALERT COUNT CARD ──────────────────────────────
+          // Alert Count Card (Bottom Left)
           if (!_isLoading)
             Positioned(
               bottom: 100,
@@ -311,40 +288,26 @@ class _HighAlertAreasScreenState extends State<HighAlertAreasScreen>
                     BoxShadow(
                       color: Colors.black.withOpacity(0.1),
                       blurRadius: 10,
-                      offset: const Offset(0, 3),
                     ),
                   ],
                 ),
                 child: Row(
-                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade50,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(
-                        Icons.warning_rounded,
-                        color: Colors.red.shade600,
-                        size: 16,
-                      ),
+                    Icon(
+                      Icons.warning_rounded,
+                      color: Colors.red.shade600,
+                      size: 16,
                     ),
                     const SizedBox(width: 8),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
                       children: [
                         const Text(
                           "Alert Zones Nearby",
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey,
-                            fontWeight: FontWeight.w500,
-                          ),
+                          style: TextStyle(fontSize: 11, color: Colors.grey),
                         ),
                         Text(
-                          "${_alertZones.length} zones detected",
+                          "${_markers.length > 0 ? _markers.length - 1 : 0} zones detected",
                           style: const TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w800,
@@ -358,7 +321,7 @@ class _HighAlertAreasScreenState extends State<HighAlertAreasScreen>
               ),
             ),
 
-          // ── FAB ───────────────────────────────────────────
+          // FAB for Re-centering
           if (!_isLoading)
             Positioned(
               bottom: 30,
@@ -371,15 +334,12 @@ class _HighAlertAreasScreenState extends State<HighAlertAreasScreen>
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       colors: [Color(0xFF7B4F8E), Color(0xFF9B6FA3)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
                     ),
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
                         color: const Color(0xFF7B4F8E).withOpacity(0.4),
                         blurRadius: 12,
-                        offset: const Offset(0, 4),
                       ),
                     ],
                   ),
@@ -396,9 +356,51 @@ class _HighAlertAreasScreenState extends State<HighAlertAreasScreen>
     );
   }
 
+  void _buildMarkersAndCircles() {
+    List<Marker> tempMarkers = [];
+    List<CircleMarker> tempCircles = [];
+    tempMarkers.add(
+      Marker(
+        point: _currentPosition,
+        width: 60,
+        height: 60,
+        child: const Icon(
+          Icons.my_location_rounded,
+          color: Colors.blue,
+          size: 36,
+        ),
+      ),
+    );
+    for (final zone in _alertZones) {
+      final LatLng point = LatLng(zone['lat'], zone['lng']);
+      final Color color = zone['color'];
+      tempMarkers.add(
+        Marker(
+          point: point,
+          width: 44,
+          height: 44,
+          child: Icon(Icons.warning_rounded, color: color, size: 22),
+        ),
+      );
+      tempCircles.add(
+        CircleMarker(
+          point: point,
+          color: color.withOpacity(0.3), // Transparency thori barha di
+          borderColor: color,
+          borderStrokeWidth: 2,
+          useRadiusInMeter: true, // YE SABSE ZAROORI HAI
+          radius: zone['radius'], // Meters mein (e.g., 500.0)
+        ),
+      );
+    }
+    setState(() {
+      _markers = tempMarkers;
+      _circles = tempCircles;
+    });
+  }
+
   Widget _legendItem(Color color, String label) {
     return Row(
-      mainAxisSize: MainAxisSize.min,
       children: [
         Container(
           width: 12,

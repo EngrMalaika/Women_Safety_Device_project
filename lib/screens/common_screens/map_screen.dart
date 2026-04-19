@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:firebase_database/firebase_database.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -11,7 +12,8 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
-  LatLng _currentPosition = const LatLng(0, 0);
+  final DatabaseReference _dbRef = FirebaseDatabase.instance.ref("tracking");
+  LatLng _currentPosition = const LatLng(30.1575, 71.5249);
   final MapController _mapController = MapController();
   bool _isLoading = true;
   String _errorMessage = '';
@@ -24,14 +26,18 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+    // 1. Animation setup (Don't change this, it keeps the pulse effect)
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1400),
     )..repeat(reverse: true);
+
     _pulseAnimation = Tween<double>(begin: 1.0, end: 1.15).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
-    _determinePosition();
+
+    // 2. Mobile GPS ki bajaye Firebase sun-na shuru karein
+    _listenToFirebaseTracking();
   }
 
   @override
@@ -40,81 +46,38 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  Future<void> _determinePosition() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = '';
-    });
+  // Purane _determinePosition aur _startLocationUpdates ki jagah ye aik function:
+  void _listenToFirebaseTracking() {
+    setState(() => _isLoading = true);
 
-    try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        setState(() {
-          _errorMessage = 'Location services are disabled.\nPlease enable GPS.';
-          _isLoading = false;
-        });
-        return;
-      }
+    // Database ke 'tracking' node ko listen karna
+    _dbRef.onValue.listen(
+      (DatabaseEvent event) {
+        final data = event.snapshot.value as Map?;
 
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
+        if (data != null && mounted) {
           setState(() {
-            _errorMessage =
-                'Location permission denied.\nPlease allow location access.';
+            // Hardware coordinates: 'latitude' aur 'longitude' keys database mein honi chahiye
+            double lat = data['latitude']?.toDouble() ?? 30.1575;
+            double lng = data['longitude']?.toDouble() ?? 71.5249;
+
+            _currentPosition = LatLng(lat, lng);
             _isLoading = false;
           });
-          return;
-        }
-      }
 
-      if (permission == LocationPermission.deniedForever) {
+          // Map ko hardware ki live location par move karna
+          if (_isMapReady) {
+            _mapController.move(_currentPosition, _currentZoom);
+          }
+        }
+      },
+      onError: (error) {
         setState(() {
-          _errorMessage =
-              'Location permission permanently denied.\nEnable in device settings.';
+          _errorMessage = "Firebase Sync Error: $error";
           _isLoading = false;
         });
-        return;
-      }
-
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.best,
-      ).timeout(const Duration(seconds: 15));
-
-      setState(() {
-        _currentPosition = LatLng(position.latitude, position.longitude);
-        _isLoading = false;
-      });
-
-      if (_isMapReady) {
-        _mapController.move(_currentPosition, _currentZoom);
-      }
-
-      _startLocationUpdates();
-    } catch (e) {
-      setState(() {
-        _errorMessage =
-            'Failed to get location.\n\nMake sure:\n• GPS is ON\n• Permission is granted\n• Try outdoors for better signal';
-        _isLoading = false;
-      });
-    }
-  }
-
-  void _startLocationUpdates() {
-    Geolocator.getPositionStream(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.bestForNavigation,
-        distanceFilter: 10,
-      ),
-    ).listen((Position position) {
-      if (mounted) {
-        setState(() {
-          _currentPosition = LatLng(position.latitude, position.longitude);
-        });
-        _mapController.move(_currentPosition, _currentZoom);
-      }
-    });
+      },
+    );
   }
 
   @override
@@ -208,7 +171,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                       // Refresh button
                       const SizedBox(width: 8),
                       GestureDetector(
-                        onTap: _determinePosition,
+                        onTap: _listenToFirebaseTracking,
                         child: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
@@ -372,7 +335,10 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
         initialCenter: _currentPosition,
         initialZoom: _currentZoom,
         onMapReady: () {
-          _isMapReady = true;
+          setState(() {
+            _isMapReady = true; // State update karein taake UI refresh ho
+          });
+          // Map ready hotay hi hardware ki current location par jump karein
           _mapController.move(_currentPosition, _currentZoom);
         },
       ),
@@ -446,7 +412,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
             ),
             SizedBox(height: 8),
             Text(
-              "Make sure GPS is enabled",
+              "Connecting to Safety Device...",
               style: TextStyle(color: Colors.white70, fontSize: 13),
             ),
           ],
@@ -515,7 +481,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                 children: [
                   Expanded(
                     child: GestureDetector(
-                      onTap: _determinePosition,
+                      onTap: _listenToFirebaseTracking,
                       child: Container(
                         height: 50,
                         decoration: BoxDecoration(
@@ -544,36 +510,6 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => Geolocator.openLocationSettings(),
-                      child: Container(
-                        height: 50,
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.white70, width: 1.5),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.settings_rounded,
-                              color: Colors.white,
-                              size: 18,
-                            ),
-                            SizedBox(width: 8),
-                            Text(
-                              "Settings",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ],

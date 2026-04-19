@@ -48,13 +48,6 @@ class AppDrawer extends StatelessWidget {
                     "profile",
                     const Color(0xFF1565C0),
                   ),
-                  _menuItem(
-                    context,
-                    Icons.notifications_rounded,
-                    "Notifications",
-                    "notifications",
-                    const Color(0xFFF57F17),
-                  ),
 
                   _divider("Settings"),
 
@@ -89,14 +82,6 @@ class AppDrawer extends StatelessWidget {
                     "share_app",
                     const Color(0xFF6A1B9A),
                   ),
-                  _menuItem(
-                    context,
-                    Icons.feedback_rounded,
-                    "Send Feedback",
-                    "send_feedback",
-                    const Color(0xFF2E7D32),
-                  ),
-
                   _divider("Legal"),
 
                   _menuItem(

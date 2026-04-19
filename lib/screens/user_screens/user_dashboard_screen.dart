@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:safety_app/screens/common_screens/alerts_screen.dart';
 import 'package:safety_app/screens/common_screens/voice_recordings_screen.dart';
-import 'package:safety_app/screens/user_screens/alerts_screen.dart';
 import 'package:safety_app/screens/user_screens/device_settings_screen.dart';
 import 'package:safety_app/screens/common_screens/helplines_screen.dart';
 import 'package:safety_app/screens/common_screens/high_alert_screen.dart';
@@ -11,11 +11,9 @@ import 'package:safety_app/screens/common_screens/nearbyPolice_screen.dart';
 import 'package:safety_app/screens/user_screens/settings_screen.dart';
 import 'package:safety_app/screens/user_screens/track_guardian_screen.dart';
 import 'package:safety_app/screens/common_screens/profile_screen.dart';
-import 'package:safety_app/screens/common_screens/notifications_screen.dart';
 import 'package:safety_app/screens/common_screens/about_app_screen.dart';
 import 'package:safety_app/screens/common_screens/privacy_policy_screen.dart';
 import 'package:safety_app/screens/common_screens/terms_of_service_screen.dart';
-import 'package:safety_app/screens/common_screens/send_feedback_screen.dart';
 import 'package:safety_app/screens/common_screens/rate_app_screen.dart';
 import 'package:safety_app/screens/common_screens/share_app_screen.dart';
 import 'package:safety_app/widgets/app_drawer.dart';
@@ -80,9 +78,6 @@ class _DashboardScreenState extends State<UserDashboardScreen>
             case "profile":
               _go(const ProfileScreen());
               break;
-            case "notifications":
-              _go(const NotificationsScreen());
-              break;
             case "settings":
               _go(const SettingsScreen());
               break;
@@ -90,13 +85,10 @@ class _DashboardScreenState extends State<UserDashboardScreen>
               _go(const AboutAppScreen());
               break;
             case "rate_app":
-              _go(const RateAppScreen());
+              _go(const UnifiedFeedbackScreen());
               break;
             case "share_app":
               _go(const ShareAppScreen());
-              break;
-            case "send_feedback":
-              _go(const SendFeedbackScreen());
               break;
             case "privacy_policy":
               _go(const PrivacyPolicyScreen());
@@ -500,7 +492,7 @@ class _DashboardScreenState extends State<UserDashboardScreen>
         Icons.notifications_active_rounded,
         "Alerts",
         const Color(0xFFE53935),
-        () => _go(AlertsScreen()),
+        () => _go(AlertsScreen(isGuardian: false)),
       ),
       _GridItem(
         Icons.settings_remote_rounded,

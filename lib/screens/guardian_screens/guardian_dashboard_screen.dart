@@ -1,3 +1,4 @@
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -6,16 +7,14 @@ import 'package:safety_app/screens/common_screens/helplines_screen.dart';
 import 'package:safety_app/screens/common_screens/high_alert_screen.dart';
 import 'package:safety_app/screens/common_screens/nearbyPolice_screen.dart';
 import 'package:safety_app/screens/common_screens/voice_recordings_screen.dart';
-import 'package:safety_app/screens/guardian_screens/alerts_screen.dart';
+import 'package:safety_app/screens/common_screens/alerts_screen.dart';
 import 'package:safety_app/screens/guardian_screens/device_status_screen.dart';
 import 'package:safety_app/screens/guardian_screens/settings_screen.dart';
 import 'package:safety_app/screens/guardian_screens/user_health_screen.dart';
 import 'package:safety_app/screens/common_screens/profile_screen.dart';
-import 'package:safety_app/screens/common_screens/notifications_screen.dart';
 import 'package:safety_app/screens/common_screens/about_app_screen.dart';
 import 'package:safety_app/screens/common_screens/privacy_policy_screen.dart';
 import 'package:safety_app/screens/common_screens/terms_of_service_screen.dart';
-import 'package:safety_app/screens/common_screens/send_feedback_screen.dart';
 import 'package:safety_app/screens/common_screens/rate_app_screen.dart';
 import 'package:safety_app/screens/common_screens/share_app_screen.dart';
 import 'package:safety_app/widgets/app_drawer.dart';
@@ -30,6 +29,11 @@ class GuardianDashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<GuardianDashboardScreen>
     with TickerProviderStateMixin {
+  // --- YE DO LINES ADD KAREIN ---
+  final _locationRef = FirebaseDatabase.instance.ref(
+    "locations/user_123/current",
+  );
+  final _statusRef = FirebaseDatabase.instance.ref("devices/SD-12455/status");
   final MapController _mapController = MapController();
   final LatLng _userLocation = const LatLng(31.582045, 74.329376);
 
@@ -79,9 +83,6 @@ class _DashboardScreenState extends State<GuardianDashboardScreen>
             case "profile":
               _go(const ProfileScreen());
               break;
-            case "notifications":
-              _go(const NotificationsScreen());
-              break;
             case "settings":
               _go(const SettingsScreen());
               break;
@@ -89,13 +90,10 @@ class _DashboardScreenState extends State<GuardianDashboardScreen>
               _go(const AboutAppScreen());
               break;
             case "rate_app":
-              _go(const RateAppScreen());
+              _go(const UnifiedFeedbackScreen());
               break;
             case "share_app":
               _go(const ShareAppScreen());
-              break;
-            case "send_feedback":
-              _go(const SendFeedbackScreen());
               break;
             case "privacy_policy":
               _go(const PrivacyPolicyScreen());
@@ -228,7 +226,7 @@ class _DashboardScreenState extends State<GuardianDashboardScreen>
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Color(0xFF7B4F8E).withOpacity(0.22),
+              color: const Color(0xFF7B4F8E).withOpacity(0.22),
               offset: const Offset(0, 6),
               blurRadius: 18,
             ),
@@ -236,126 +234,122 @@ class _DashboardScreenState extends State<GuardianDashboardScreen>
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(20),
-          child: Stack(
-            children: [
-              FlutterMap(
-                mapController: _mapController,
-                options: MapOptions(
-                  initialCenter: _userLocation,
-                  initialZoom: 15,
-                  interactiveFlags: InteractiveFlag.none,
-                ),
+          child: StreamBuilder(
+            stream: _locationRef.onValue,
+            builder: (context, snapshot) {
+              double lat = 31.582045;
+              double lng = 74.329376;
+
+              if (snapshot.hasData && snapshot.data!.snapshot.value != null) {
+                final data = Map<dynamic, dynamic>.from(
+                  snapshot.data!.snapshot.value as Map,
+                );
+                lat = (data['lat'] ?? lat).toDouble();
+                lng = (data['lng'] ?? lng).toDouble();
+              }
+
+              return Stack(
                 children: [
-                  TileLayer(
-                    urlTemplate:
-                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                    userAgentPackageName: 'com.womensafety.app',
-                    subdomains: const ['a', 'b', 'c'],
-                  ),
-                  MarkerLayer(
-                    markers: [
-                      Marker(
-                        point: _userLocation,
-                        width: 50,
-                        height: 50,
-                        child: const Icon(
-                          Icons.location_pin,
-                          color: Colors.red,
-                          size: 40,
-                        ),
+                  FlutterMap(
+                    mapController: _mapController,
+                    options: MapOptions(
+                      initialCenter: LatLng(lat, lng), // Live Data
+                      initialZoom: 15,
+                      interactiveFlags: InteractiveFlag.none,
+                    ),
+                    children: [
+                      TileLayer(
+                        urlTemplate:
+                            'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        userAgentPackageName:
+                            'com.simra.guardian_safety_project_v1',
+                      ),
+                      MarkerLayer(
+                        markers: [
+                          Marker(
+                            point: LatLng(lat, lng), // Live Marker
+                            width: 50,
+                            height: 50,
+                            child: const Icon(
+                              Icons.location_pin,
+                              color: Colors.red,
+                              size: 40,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
+                  ),
+                  // --- AAPKA ORIGINAL DESIGN OVERLAY ---
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.black.withOpacity(0.3),
+                          Colors.transparent,
+                          Colors.black.withOpacity(0.18),
+                        ],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 10,
+                    left: 12,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.92),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(
+                            Icons.location_on,
+                            color: Color(0xFF7B4F8E),
+                            size: 13,
+                          ),
+                          SizedBox(width: 4),
+                          Text(
+                            "Lahore, PK",
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const Positioned(
+                    bottom: 10,
+                    left: 0,
+                    right: 0,
+                    child: Center(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.touch_app, color: Colors.white, size: 15),
+                          SizedBox(width: 6),
+                          Text(
+                            'Tap for Live Tracking',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
-              ),
-              // gradient overlay
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.black.withOpacity(0.3),
-                      Colors.transparent,
-                      Colors.black.withOpacity(0.18),
-                    ],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ),
-                ),
-              ),
-              // Top location chip
-              Positioned(
-                top: 10,
-                left: 12,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.92),
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 4,
-                      ),
-                    ],
-                  ),
-                  child: const Row(
-                    children: [
-                      Icon(
-                        Icons.location_on,
-                        color: Color(0xFF7B4F8E),
-                        size: 13,
-                      ),
-                      SizedBox(width: 4),
-                      Text(
-                        "Lahore, PK",
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              // Bottom tap hint
-              Positioned(
-                bottom: 10,
-                left: 0,
-                right: 0,
-                child: Center(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.5),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.white24, width: 1),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.touch_app, color: Colors.white, size: 15),
-                        SizedBox(width: 6),
-                        Text(
-                          'Tap for Live Tracking',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
+              );
+            },
           ),
         ),
       ),
@@ -364,108 +358,117 @@ class _DashboardScreenState extends State<GuardianDashboardScreen>
 
   // ── TRACKING CARD ─────────────────────────────────────────────
   Widget _buildTrackingCard() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0xFF7B4F8E).withOpacity(0.12),
-            blurRadius: 14,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          // Pulsing avatar
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              ScaleTransition(
-                scale: _pulseAnimation,
-                child: Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: const Color(0xFF7B4F8E).withOpacity(0.25),
-                      width: 3,
-                    ),
-                  ),
-                ),
-              ),
-              const CircleAvatar(
-                radius: 23,
-                backgroundColor: Color(0xFF7B4F8E),
-                child: Icon(Icons.person, color: Colors.white, size: 24),
+    return StreamBuilder(
+      stream: _statusRef.onValue,
+      builder: (context, snapshot) {
+        bool isSafe = true;
+        if (snapshot.hasData && snapshot.data!.snapshot.value != null) {
+          final data = Map<dynamic, dynamic>.from(
+            snapshot.data!.snapshot.value as Map,
+          );
+          isSafe = data['is_safe'] ?? true;
+        }
+
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF7B4F8E).withOpacity(0.12),
+                blurRadius: 14,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Tracking: Sarah Khan',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.shield_rounded,
-                      color: Colors.green,
-                      size: 13,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Safe  •  Updated 2 min ago',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.grey.shade600,
+          child: Row(
+            children: [
+              // Original Pulsing Avatar
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  ScaleTransition(
+                    scale: _pulseAnimation,
+                    child: Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: const Color(0xFF7B4F8E).withOpacity(0.25),
+                          width: 3,
+                        ),
                       ),
+                    ),
+                  ),
+                  const CircleAvatar(
+                    radius: 23,
+                    backgroundColor: Color(0xFF7B4F8E),
+                    child: Icon(Icons.person, color: Colors.white, size: 24),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Tracking: Sarah Khan',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Icon(
+                          isSafe ? Icons.shield_rounded : Icons.warning_rounded,
+                          color: isSafe ? Colors.green : Colors.red,
+                          size: 13,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          isSafe ? 'Safe • Updated Now' : 'EMERGENCY ALERT',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: isSafe ? Colors.grey.shade600 : Colors.red,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
-          // Active badge
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF2E7D32), Color(0xFF43A047)],
               ),
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.green.withOpacity(0.3),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
+              // Original Gradient Badge
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
                 ),
-              ],
-            ),
-            child: const Text(
-              'ACTIVE',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
-                fontSize: 10,
-                letterSpacing: 0.8,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: isSafe
+                        ? [const Color(0xFF2E7D32), const Color(0xFF43A047)]
+                        : [Colors.red, Colors.orange],
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  isSafe ? 'ACTIVE' : 'SOS',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 10,
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -476,7 +479,7 @@ class _DashboardScreenState extends State<GuardianDashboardScreen>
         Icons.notifications_active_rounded,
         "Alerts",
         const Color(0xFFE53935),
-        () => _go(AlertsScreen()),
+        () => _go(AlertsScreen(isGuardian: true)),
       ),
       _GridItem(
         Icons.health_and_safety_rounded,
